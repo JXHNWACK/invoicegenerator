@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Invoice Generator (UK Sole Trader)</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 20px; 
+            color: #333;
+        }
+        .form-container, .invoice-container { 
+            max-width: 800px; 
+            margin: auto; 
+            padding: 30px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 8px; 
+            background: #f9f9f9;
+        }
+        .invoice-container { 
+            display: none; 
+            margin-top: 20px; 
+            background: #fff;
+        }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            font-weight: 600; 
+            margin-bottom: 5px;
+        }
+        input[type="text"] { 
+            width: 100%; 
+            padding: 10px; 
+            box-sizing: border-box; 
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+        }
+        .checkbox-group label {
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        button { 
+            padding: 12px 20px; 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            border-radius: 4px;
+            cursor: pointer; 
+            font-weight: bold;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover { 
+            background: #218838; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 30px; 
+        }
+        th, td { 
+            border-bottom: 1px solid #ddd; 
+            padding: 12px; 
+            text-align: left; 
+        }
+        th { 
+            background-color: #f2f2f2; 
+        }
+        .total-section { 
+            text-align: right; 
+            margin-top: 20px; 
+        }
+        .total-section p {
+            margin: 5px 0;
+        }
+        
+        /* CSS rules to make the PDF look clean when printing */
+        @media print {
+            body { margin: 0; background: #fff; }
+            .form-container, .no-print { display: none !important; }
+            .invoice-container { 
+                display: block; 
+                border: none; 
+                margin: 0; 
+                padding: 0; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <h2>Enter Sole Trader Details</h2>
+        <div class="form-group">
+            <label>Name / Trading As (t/a):</label>
+            <input type="text" id="name" placeholder="e.g. John Smith t/a Smith Plumbing">
+        </div>
+        <div class="form-group">
+            <label>Address:</label>
+            <input type="text" id="address" placeholder="e.g. 42 High Street, Manchester">
+        </div>
+        <div class="form-group">
+            <label>Postcode:</label>
+            <input type="text" id="postcode" placeholder="e.g. M1 1AA">
+        </div>
+        <div class="form-group">
+            <label>Email:</label>
+            <input type="text" id="email" placeholder="e.g. john@smithplumbing.co.uk">
+        </div>
+        <div class="form-group">
+            <label>Profession / Job Type:</label>
+            <select id="jobType" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <option value="Plumber">Plumber</option>
+                <option value="Electrician">Electrician</option>
+                <option value="Carpenter">Carpenter / Joiner</option>
+                <option value="IT">IT / Tech Support</option>
+                <option value="Landscaper">Landscaper / Gardener</option>
+                <option value="Cleaner">Cleaner</option>
+                <option value="General">General Handyperson</option>
+                <option value="Delivery">Delivery Driver / Courier</option>
+                <option value="Taxi">Taxi / Private Hire</option>
+                <option value="Painter">Painter & Decorator</option>
+                <option value="Builder">Builder / Bricklayer</option>
+                <option value="Designer">Graphic Designer</option>
+                <option value="Photographer">Photographer</option>
+                <option value="Trainer">Personal Trainer</option>
+                <option value="Tutor">Private Tutor</option>
+                <option value="DogWalker">Dog Walker / Pet Sitter</option>
+                <option value="Mechanic">Mechanic / Mobile Mechanic</option>
+                <option value="Hairdresser">Hairdresser / Mobile Stylist</option>
+                <option value="MUA">Make-up Artist (MUA)</option>
+                <option value="Roofer">Roofer</option>
+                <option value="Locksmith">Locksmith</option>
+                <option value="DJ">DJ / Entertainer</option>
+                <option value="Caterer">Caterer / Personal Chef</option>
+                <option value="Glazier">Window Fitter / Glazier</option>
+                <option value="Surveyor">Surveyor</option>
+                <option value="VA">Virtual Assistant (VA)</option>
+            </select>
+        </div>
+        <div class="form-group" id="bankDropdownContainer" style="display: none;">
+            <label>Bank (For Unpaid Invoices):</label>
+            <select id="bankName" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+                <option value="Random">Random Bank</option>
+                <option value="Barclays">Barclays</option>
+                <option value="HSBC">HSBC</option>
+                <option value="NatWest">NatWest</option>
+                <option value="Lloyds Bank">Lloyds Bank</option>
+                <option value="Santander">Santander</option>
+                <option value="Halifax">Halifax</option>
+                <option value="Nationwide">Nationwide</option>
+                <option value="Monzo">Monzo</option>
+                <option value="Starling Bank">Starling Bank</option>
+            </select>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="isVatRegistered">
+            <label for="isVatRegistered">Trader is VAT Registered (Apply 20% VAT)</label>
+        </div>
+        <div class="checkbox-group">
+            <input type="checkbox" id="isUnpaid" onchange="toggleBankDropdown()">
+            <label for="isUnpaid">Mark as Unpaid (Generates Bank Details)</label>
+        </div>
+        <button onclick="generateInvoice()">Generate Random Invoice</button>
+    </div>
+
+    <div class="invoice-container" id="invoice">
+        <!-- The randomized invoice will be generated and injected here -->
+    </div>
+
+    <script>
+        function toggleBankDropdown() {
+            const isUnpaid = document.getElementById('isUnpaid').checked;
+            const bankDropdownContainer = document.getElementById('bankDropdownContainer');
+            bankDropdownContainer.style.display = isUnpaid ? 'block' : 'none';
+        }
+
+        // Job-specific services and items
+        // Updated with realistic min/max pricing and maximum realistic quantities for each specific task
+        const jobItems = {
+            "Plumber": [
+                { desc: "Emergency Pipe Repair", min: 100, max: 250, maxQty: 1 },
+                { desc: "Boiler Servicing", min: 60, max: 90, maxQty: 1 },
+                { desc: "Tap Installation", min: 50, max: 120, maxQty: 2 },
+                { desc: "Leak Detection", min: 70, max: 150, maxQty: 1 },
+                { desc: "Radiator Bleeding", min: 40, max: 80, maxQty: 1 },
+                { desc: "Bathroom Fitting", min: 800, max: 2000, maxQty: 1 },
+                { desc: "Callout Fee", min: 50, max: 90, maxQty: 1 },
+                { desc: "Parts & Materials", min: 15, max: 150, maxQty: 1 }
+            ],
+            "Electrician": [
+                { desc: "Fault Finding", min: 60, max: 120, maxQty: 1 },
+                { desc: "Socket Installation", min: 40, max: 80, maxQty: 6 },
+                { desc: "Rewiring (Partial)", min: 400, max: 1200, maxQty: 1 },
+                { desc: "Lighting Installation", min: 50, max: 150, maxQty: 4 },
+                { desc: "Fuse Box Upgrade", min: 300, max: 600, maxQty: 1 },
+                { desc: "PAT Testing", min: 50, max: 150, maxQty: 1 },
+                { desc: "Callout Fee", min: 50, max: 100, maxQty: 1 },
+                { desc: "Cable & Components", min: 20, max: 200, maxQty: 1 }
+            ],
+            "Carpenter": [
+                { desc: "Custom Shelving", min: 150, max: 400, maxQty: 2 },
+                { desc: "Door Hanging", min: 60, max: 120, maxQty: 5 },
+                { desc: "Skirting Board Installation", min: 100, max: 300, maxQty: 1 },
+                { desc: "Wooden Floor Fitting", min: 300, max: 800, maxQty: 1 },
+                { desc: "Joist Repair", min: 200, max: 500, maxQty: 1 },
+                { desc: "Bespoke Cabinetry", min: 500, max: 1500, maxQty: 1 },
+                { desc: "Timber Costs", min: 50, max: 300, maxQty: 1 },
+                { desc: "Labor (Day Rate)", min: 150, max: 250, maxQty: 3 }
+            ],
+            "IT": [
+                { desc: "Network Setup", min: 150, max: 400, maxQty: 1 },
+                { desc: "Virus Removal", min: 50, max: 100, maxQty: 1 },
+                { desc: "Hardware Troubleshooting", min: 60, max: 120, maxQty: 2 },
+                { desc: "Software Installation", min: 40, max: 80, maxQty: 3 },
+                { desc: "Data Recovery", min: 150, max: 500, maxQty: 1 },
+                { desc: "Server Maintenance", min: 200, max: 600, maxQty: 1 },
+                { desc: "Consultancy (Hourly)", min: 40, max: 90, maxQty: 8 },
+                { desc: "Remote Support", min: 30, max: 70, maxQty: 2 }
+            ],
+            "Landscaper": [
+                { desc: "Lawn Mowing", min: 20, max: 50, maxQty: 2 },
+                { desc: "Hedge Trimming", min: 40, max: 100, maxQty: 1 },
+                { desc: "Patio Laying", min: 600, max: 2500, maxQty: 1 },
+                { desc: "Garden Clearance", min: 100, max: 300, maxQty: 1 },
+                { desc: "Fence Panel Replacement", min: 50, max: 100, maxQty: 6 },
+                { desc: "Planting & Turfing", min: 200, max: 800, maxQty: 1 },
+                { desc: "Green Waste Disposal", min: 40, max: 90, maxQty: 2 },
+                { desc: "Soil & Mulch", min: 30, max: 150, maxQty: 1 }
+            ],
+            "Cleaner": [
+                { desc: "Deep Cleaning", min: 120, max: 300, maxQty: 1 },
+                { desc: "End of Tenancy Clean", min: 150, max: 400, maxQty: 1 },
+                { desc: "Carpet Cleaning (Per Room)", min: 30, max: 60, maxQty: 5 },
+                { desc: "Window Cleaning", min: 15, max: 40, maxQty: 1 },
+                { desc: "Oven Cleaning", min: 40, max: 80, maxQty: 1 },
+                { desc: "Weekly Domestic Clean", min: 40, max: 80, maxQty: 4 },
+                { desc: "Cleaning Supplies", min: 10, max: 30, maxQty: 1 },
+                { desc: "Hourly Rate", min: 15, max: 25, maxQty: 8 }
+            ],
+            "General": [
+                { desc: "Flat Pack Assembly", min: 30, max: 90, maxQty: 4 },
+                { desc: "Picture Hanging", min: 20, max: 50, maxQty: 5 },
+                { desc: "Minor Paint Touch-ups", min: 40, max: 100, maxQty: 1 },
+                { desc: "Gutter Cleaning", min: 50, max: 120, maxQty: 1 },
+                { desc: "Lock Replacement", min: 60, max: 150, maxQty: 2 },
+                { desc: "Draft Proofing", min: 40, max: 90, maxQty: 1 },
+                { desc: "Callout Fee", min: 40, max: 80, maxQty: 1 },
+                { desc: "Hardware & Fixings", min: 5, max: 40, maxQty: 1 }
+            ],
+            "Delivery": [
+                { desc: "Standard Delivery", min: 5, max: 15, maxQty: 10 },
+                { desc: "Express Courier", min: 15, max: 40, maxQty: 5 },
+                { desc: "Overnight Shipping", min: 20, max: 60, maxQty: 3 },
+                { desc: "Pallet Delivery", min: 50, max: 150, maxQty: 4 },
+                { desc: "Multi-drop Route", min: 100, max: 250, maxQty: 1 },
+                { desc: "Fragile Goods Handling", min: 10, max: 30, maxQty: 5 },
+                { desc: "Fuel Surcharge", min: 5, max: 25, maxQty: 1 },
+                { desc: "Weekend Delivery", min: 20, max: 50, maxQty: 2 }
+            ],
+            "Taxi": [
+                { desc: "Airport Transfer", min: 40, max: 120, maxQty: 2 },
+                { desc: "Local Fare", min: 8, max: 25, maxQty: 5 },
+                { desc: "Wait Time (Hourly)", min: 15, max: 30, maxQty: 3 },
+                { desc: "Long Distance Fare", min: 80, max: 250, maxQty: 1 },
+                { desc: "Corporate Account Journey", min: 20, max: 60, maxQty: 4 },
+                { desc: "Meet and Greet Service", min: 10, max: 25, maxQty: 2 },
+                { desc: "Out of Hours Surcharge", min: 10, max: 30, maxQty: 2 },
+                { desc: "Multi-stop Journey", min: 30, max: 80, maxQty: 1 }
+            ],
+            "Painter": [
+                { desc: "Interior Painting (Per Room)", min: 150, max: 400, maxQty: 4 },
+                { desc: "Exterior Painting", min: 500, max: 2000, maxQty: 1 },
+                { desc: "Wallpaper Hanging (Per Roll)", min: 30, max: 70, maxQty: 10 },
+                { desc: "Surface Preparation", min: 80, max: 200, maxQty: 1 },
+                { desc: "Woodwork Painting", min: 100, max: 300, maxQty: 1 },
+                { desc: "Ceiling Painting", min: 100, max: 250, maxQty: 2 },
+                { desc: "Paint & Materials", min: 50, max: 300, maxQty: 1 },
+                { desc: "Day Rate", min: 150, max: 250, maxQty: 5 }
+            ],
+            "Builder": [
+                { desc: "Bricklaying (Day Rate)", min: 180, max: 280, maxQty: 10 },
+                { desc: "Repointing", min: 200, max: 600, maxQty: 1 },
+                { desc: "Wall Demolition", min: 300, max: 800, maxQty: 1 },
+                { desc: "Foundation Work", min: 1000, max: 3000, maxQty: 1 },
+                { desc: "Plastering (Per Room)", min: 250, max: 600, maxQty: 3 },
+                { desc: "Scaffolding Hire", min: 400, max: 1200, maxQty: 1 },
+                { desc: "Building Materials", min: 200, max: 1500, maxQty: 1 },
+                { desc: "Site Clearance", min: 150, max: 400, maxQty: 1 }
+            ],
+            "Designer": [
+                { desc: "Logo Design", min: 150, max: 500, maxQty: 1 },
+                { desc: "Branding Package", min: 400, max: 1200, maxQty: 1 },
+                { desc: "Website Mockup", min: 300, max: 800, maxQty: 1 },
+                { desc: "Flyer/Brochure Design", min: 100, max: 300, maxQty: 2 },
+                { desc: "Social Media Graphics", min: 20, max: 80, maxQty: 10 },
+                { desc: "Revision Rounds", min: 40, max: 100, maxQty: 3 },
+                { desc: "Print Preparation", min: 50, max: 150, maxQty: 1 },
+                { desc: "Consultation (Hourly)", min: 40, max: 80, maxQty: 4 }
+            ],
+            "Photographer": [
+                { desc: "Event Photography", min: 250, max: 800, maxQty: 1 },
+                { desc: "Portrait Session", min: 100, max: 300, maxQty: 1 },
+                { desc: "Product Photography (Per Item)", min: 15, max: 50, maxQty: 20 },
+                { desc: "Photo Editing/Retouching (Hourly)", min: 30, max: 70, maxQty: 10 },
+                { desc: "Additional Digital Copies", min: 10, max: 30, maxQty: 15 },
+                { desc: "Travel Expenses", min: 20, max: 100, maxQty: 1 },
+                { desc: "Studio Hire", min: 100, max: 400, maxQty: 1 },
+                { desc: "Wedding Package", min: 800, max: 2500, maxQty: 1 }
+            ],
+            "Trainer": [
+                { desc: "1-on-1 Personal Training", min: 35, max: 70, maxQty: 4 },
+                { desc: "Group Bootcamp (Per Person)", min: 10, max: 25, maxQty: 10 },
+                { desc: "Nutritional Plan", min: 50, max: 150, maxQty: 1 },
+                { desc: "Fitness Assessment", min: 40, max: 80, maxQty: 1 },
+                { desc: "Online Coaching (Monthly)", min: 80, max: 200, maxQty: 1 },
+                { desc: "Block of 10 Sessions", min: 300, max: 600, maxQty: 1 },
+                { desc: "Gym Pass Surcharge", min: 5, max: 15, maxQty: 4 },
+                { desc: "Sports Massage", min: 40, max: 80, maxQty: 2 }
+            ],
+            "Tutor": [
+                { desc: "11+ Exam Preparation (Hourly)", min: 30, max: 60, maxQty: 4 },
+                { desc: "GCSE Maths Tutoring (Hourly)", min: 25, max: 50, maxQty: 4 },
+                { desc: "A-Level Science Tutoring (Hourly)", min: 30, max: 65, maxQty: 4 },
+                { desc: "Online Lesson", min: 20, max: 45, maxQty: 4 },
+                { desc: "Essay Review", min: 15, max: 40, maxQty: 3 },
+                { desc: "Study Materials", min: 10, max: 30, maxQty: 1 },
+                { desc: "Travel Allowance", min: 5, max: 15, maxQty: 4 },
+                { desc: "Block Booking (10 Hours)", min: 220, max: 450, maxQty: 1 }
+            ],
+            "DogWalker": [
+                { desc: "1 Hour Group Walk", min: 10, max: 20, maxQty: 5 },
+                { desc: "30 Min Solo Walk", min: 12, max: 25, maxQty: 5 },
+                { desc: "Pet Sitting (Day)", min: 30, max: 60, maxQty: 3 },
+                { desc: "Puppy Visit", min: 10, max: 20, maxQty: 4 },
+                { desc: "Weekend Surcharge", min: 5, max: 15, maxQty: 2 },
+                { desc: "Additional Dog", min: 5, max: 10, maxQty: 5 },
+                { desc: "Pet Taxi", min: 15, max: 35, maxQty: 2 },
+                { desc: "Overnight Boarding", min: 25, max: 50, maxQty: 3 }
+            ],
+            "Mechanic": [
+                { desc: "Diagnostic Check", min: 40, max: 80, maxQty: 1 },
+                { desc: "Oil and Filter Change", min: 50, max: 100, maxQty: 1 },
+                { desc: "Brake Pad Replacement", min: 80, max: 150, maxQty: 2 },
+                { desc: "Tire Replacement & Balancing", min: 60, max: 120, maxQty: 4 },
+                { desc: "Battery Replacement", min: 70, max: 150, maxQty: 1 },
+                { desc: "Full Service", min: 150, max: 300, maxQty: 1 },
+                { desc: "Callout Fee", min: 40, max: 80, maxQty: 1 },
+                { desc: "Labor (Hourly Rate)", min: 40, max: 70, maxQty: 6 }
+            ],
+            "Hairdresser": [
+                { desc: "Cut and Blow Dry", min: 30, max: 60, maxQty: 3 },
+                { desc: "Full Head Colour", min: 50, max: 100, maxQty: 1 },
+                { desc: "Highlights / Balayage", min: 60, max: 130, maxQty: 1 },
+                { desc: "Bridal Hair / Updo", min: 50, max: 150, maxQty: 4 },
+                { desc: "Men's Cut", min: 15, max: 30, maxQty: 4 },
+                { desc: "Children's Cut", min: 10, max: 20, maxQty: 3 },
+                { desc: "Perm", min: 40, max: 80, maxQty: 1 },
+                { desc: "Conditioning Treatment", min: 15, max: 40, maxQty: 2 }
+            ],
+            "MUA": [
+                { desc: "Bridal Makeup", min: 80, max: 200, maxQty: 1 },
+                { desc: "Bridesmaid Makeup", min: 40, max: 80, maxQty: 4 },
+                { desc: "Occasion Makeup", min: 35, max: 70, maxQty: 3 },
+                { desc: "Makeup Trial", min: 40, max: 80, maxQty: 1 },
+                { desc: "Eyelash Application", min: 10, max: 25, maxQty: 4 },
+                { desc: "SFX / Theatrical Makeup", min: 60, max: 150, maxQty: 2 },
+                { desc: "Full Day Rate", min: 200, max: 400, maxQty: 1 },
+                { desc: "Half Day Rate", min: 120, max: 200, maxQty: 1 }
+            ],
+            "Roofer": [
+                { desc: "Roof Inspection", min: 50, max: 100, maxQty: 1 },
+                { desc: "Tile / Slate Replacement", min: 80, max: 200, maxQty: 2 },
+                { desc: "Gutter Repair / Clearing", min: 60, max: 150, maxQty: 1 },
+                { desc: "Flat Roof Patching", min: 150, max: 400, maxQty: 1 },
+                { desc: "Chimney Repointing", min: 200, max: 500, maxQty: 1 },
+                { desc: "Fascia & Soffit Replacement", min: 300, max: 800, maxQty: 1 },
+                { desc: "Emergency Callout", min: 80, max: 150, maxQty: 1 },
+                { desc: "Roofing Materials", min: 100, max: 500, maxQty: 1 }
+            ],
+            "Locksmith": [
+                { desc: "Emergency Lockout Service", min: 70, max: 150, maxQty: 1 },
+                { desc: "Lock Replacement", min: 50, max: 120, maxQty: 3 },
+                { desc: "UPVC Door Mechanism Repair", min: 60, max: 150, maxQty: 1 },
+                { desc: "Key Cutting (On-site)", min: 5, max: 15, maxQty: 10 },
+                { desc: "Security Upgrades", min: 100, max: 300, maxQty: 1 },
+                { desc: "Safe Opening", min: 80, max: 200, maxQty: 1 },
+                { desc: "Anti-Snap Cylinder Install", min: 40, max: 90, maxQty: 4 },
+                { desc: "Callout Fee", min: 40, max: 90, maxQty: 1 }
+            ],
+            "DJ": [
+                { desc: "Wedding Package", min: 250, max: 600, maxQty: 1 },
+                { desc: "Corporate Event", min: 200, max: 500, maxQty: 1 },
+                { desc: "Birthday Party", min: 150, max: 350, maxQty: 1 },
+                { desc: "Hourly Overtime", min: 40, max: 80, maxQty: 3 },
+                { desc: "Lighting Setup", min: 50, max: 150, maxQty: 1 },
+                { desc: "Smoke / Fog Machine", min: 30, max: 80, maxQty: 1 },
+                { desc: "Travel Surcharge", min: 20, max: 60, maxQty: 1 },
+                { desc: "PA System Hire", min: 100, max: 250, maxQty: 1 }
+            ],
+            "Caterer": [
+                { desc: "Buffet (Per Head)", min: 10, max: 25, maxQty: 50 },
+                { desc: "3-Course Meal (Per Head)", min: 25, max: 60, maxQty: 30 },
+                { desc: "Canapés (Per 100)", min: 80, max: 200, maxQty: 4 },
+                { desc: "Wait Staff (Hourly)", min: 15, max: 25, maxQty: 15 },
+                { desc: "Equipment & Crockery Hire", min: 50, max: 200, maxQty: 1 },
+                { desc: "Travel & Delivery", min: 30, max: 80, maxQty: 1 },
+                { desc: "Bespoke Cake", min: 60, max: 200, maxQty: 1 },
+                { desc: "Drinks Package (Per Head)", min: 10, max: 30, maxQty: 50 }
+            ],
+            "Glazier": [
+                { desc: "Window Glass Replacement", min: 100, max: 300, maxQty: 4 },
+                { desc: "Double Glazing Unit Repair", min: 80, max: 250, maxQty: 3 },
+                { desc: "Emergency Boarding Up", min: 80, max: 180, maxQty: 2 },
+                { desc: "Mirror Fitting", min: 50, max: 150, maxQty: 2 },
+                { desc: "Shop Front Glazing", min: 300, max: 1000, maxQty: 1 },
+                { desc: "Callout Fee", min: 50, max: 100, maxQty: 1 },
+                { desc: "Safety Glass Upgrade", min: 150, max: 400, maxQty: 2 },
+                { desc: "Sealant & Materials", min: 20, max: 60, maxQty: 1 }
+            ],
+            "Surveyor": [
+                { desc: "Property Valuation", min: 200, max: 500, maxQty: 1 },
+                { desc: "Homebuyer Report", min: 350, max: 700, maxQty: 1 },
+                { desc: "Building Survey", min: 500, max: 1000, maxQty: 1 },
+                { desc: "Boundary Dispute Assessment", min: 250, max: 600, maxQty: 1 },
+                { desc: "Specific Defect Report", min: 150, max: 400, maxQty: 2 },
+                { desc: "Travel Expenses", min: 30, max: 80, maxQty: 1 },
+                { desc: "Hourly Consultation", min: 70, max: 150, maxQty: 4 },
+                { desc: "Drone Inspection Surcharge", min: 100, max: 250, maxQty: 1 }
+            ],
+            "VA": [
+                { desc: "Administrative Support (Hourly)", min: 20, max: 40, maxQty: 15 },
+                { desc: "Email Management (Monthly)", min: 100, max: 250, maxQty: 1 },
+                { desc: "Social Media Scheduling", min: 150, max: 350, maxQty: 1 },
+                { desc: "Copywriting / Blog Post", min: 40, max: 100, maxQty: 4 },
+                { desc: "Data Entry (Hourly)", min: 15, max: 30, maxQty: 10 },
+                { desc: "Customer Service (Hourly)", min: 20, max: 35, maxQty: 10 },
+                { desc: "Travel Booking & Itinerary", min: 30, max: 80, maxQty: 2 },
+                { desc: "Retainer Package (10 Hours)", min: 180, max: 350, maxQty: 2 }
+            ]
+        };
+        
+        // Geographically matches the inputted postcode to a UK region and generates a fake local customer
+        function generateLocalClient(userPostcode) {
+            const match = userPostcode.trim().match(/^[a-zA-Z]+/);
+            const prefix = match ? match[0].toUpperCase() : 'L'; // Extracts letters, defaults to North if missing
+
+            const regions = {
+                midlands: [
+                    { prefix: "B", city: "Birmingham" }, { prefix: "CV", city: "Coventry" }, { prefix: "DE", city: "Derby" }, 
+                    { prefix: "LE", city: "Leicester" }, { prefix: "LN", city: "Lincoln" }, { prefix: "NG", city: "Nottingham" }, 
+                    { prefix: "NN", city: "Northampton" }, { prefix: "ST", city: "Stoke" }, { prefix: "WR", city: "Worcester" }, { prefix: "WV", city: "Wolverhampton" }
+                ],
+                north: [
+                    { prefix: "M", city: "Manchester" }, { prefix: "L", city: "Liverpool" }, { prefix: "LS", city: "Leeds" }, 
+                    { prefix: "S", city: "Sheffield" }, { prefix: "NE", city: "Newcastle" }, { prefix: "YO", city: "York" }, 
+                    { prefix: "BL", city: "Bolton" }, { prefix: "PR", city: "Preston" }, { prefix: "SR", city: "Sunderland" }, { prefix: "BD", city: "Bradford" }
+                ],
+                south: [
+                    { prefix: "SW", city: "London" }, { prefix: "SE", city: "London" }, { prefix: "NW", city: "London" }, 
+                    { prefix: "BN", city: "Brighton" }, { prefix: "RG", city: "Reading" }, { prefix: "SO", city: "Southampton" }, 
+                    { prefix: "PO", city: "Portsmouth" }, { prefix: "GU", city: "Guildford" }, { prefix: "ME", city: "Maidstone" }, { prefix: "CR", city: "Croydon" }
+                ],
+                east: [
+                    { prefix: "CB", city: "Cambridge" }, { prefix: "NR", city: "Norwich" }, { prefix: "IP", city: "Ipswich" }, 
+                    { prefix: "PE", city: "Peterborough" }, { prefix: "CO", city: "Colchester" }, { prefix: "CM", city: "Chelmsford" }
+                ],
+                west: [
+                    { prefix: "BS", city: "Bristol" }, { prefix: "BA", city: "Bath" }, { prefix: "GL", city: "Gloucester" }, 
+                    { prefix: "EX", city: "Exeter" }, { prefix: "PL", city: "Plymouth" }, { prefix: "SN", city: "Swindon" }, 
+                    { prefix: "BH", city: "Bournemouth" }, { prefix: "SP", city: "Salisbury" }
+                ],
+                wales: [
+                    { prefix: "CF", city: "Cardiff" }, { prefix: "SA", city: "Swansea" }, { prefix: "NP", city: "Newport" }, { prefix: "LL", city: "Llandudno" }
+                ],
+                scotland: [
+                    { prefix: "EH", city: "Edinburgh" }, { prefix: "G", city: "Glasgow" }, { prefix: "AB", city: "Aberdeen" }, 
+                    { prefix: "DD", city: "Dundee" }, { prefix: "IV", city: "Inverness" }, { prefix: "PH", city: "Perth" }, { prefix: "FK", city: "Stirling" }
+                ]
+            };
+
+            let targetRegion = regions.south; // fallback region
+            for (const [key, regionLocations] of Object.entries(regions)) {
+                if (regionLocations.some(loc => loc.prefix === prefix)) {
+                    targetRegion = regionLocations; 
+                    break;
+                }
+            }
+
+            // Pick a matching city and prefix combination from the chosen region
+            const rLocation = targetRegion[Math.floor(Math.random() * targetRegion.length)];
+            const rPrefix = rLocation.prefix;
+            const rCity = rLocation.city;
+            
+            const rPostcode = `${rPrefix}${Math.floor(Math.random() * 9) + 1} ${Math.floor(Math.random() * 9)}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+
+            const nameGroups = [
+                {
+                    // UK Demographics
+                    first: [
+                        "James", "Emma", "Oliver", "Olivia", "George", "Amelia", "Harry", "Isla", "Jack", "Ava", 
+                        "Noah", "Mia", "Arthur", "Sophia", "Charlie", "Grace", "Thomas", "Emily", "Oscar", "Lily", 
+                        "William", "Freya", "Henry", "Florence", "Leo", "Chloe", "Alfie", "Sienna", "Freddie", "Poppy", 
+                        "Theodore", "Evie", "Archie", "Ruby", "Joshua", "Alice", "Alexander", "Daisy", "Isaac", "Isabella",
+                        "Edward", "Matilda", "Samuel", "Evelyn", "Joseph", "Rosie", "Daniel", "Charlotte", "Max", "Millie",
+                        "Mohammed", "Maya", "Lucas", "Harper", "Harrison", "Sarah", "Benjamin", "Jessica", "Theo", "Ella",
+                        "Adam", "Aria", "Luke", "Lucy", "Matthew", "Holly", "Liam", "Anna", "David", "Zara"
+                    ],
+                    last: [
+                        "Smith", "Jones", "Williams", "Taylor", "Brown", "Davies", "Evans", "Wilson", "Thomas", "Johnson", 
+                        "Roberts", "Walker", "Wright", "Robinson", "Thompson", "White", "Hughes", "Edwards", "Green", "Hall", 
+                        "Wood", "Harris", "Martin", "Jackson", "Clarke", "Turner", "Hill", "Scott", "MacLeod", "Kelly", 
+                        "Murphy", "Moore", "Campbell", "Stewart", "Mitchell", "Doherty", "Ward", "Watson", "Morgan", "Lewis",
+                        "Allen", "King", "Baker", "Harrison", "Young", "Anderson", "Bell", "Phillips", "Davis",
+                        "Wilkinson", "Price", "Griffiths", "Shaw", "Patel", "Simpson", "Fox", "Robertson", "Murray", "Graham"
+                    ]
+                },
+                {
+                    // Indian Demographics
+                    first: [
+                        "Aarav", "Aarush", "Aditya", "Ajay", "Akash", "Amit", "Anil", "Ankit", "Arjun", "Arun", 
+                        "Aryan", "Ashok", "Ayush", "Dev", "Dhruv", "Harish", "Ishaan", "Karan", "Kartik", "Kiran", 
+                        "Krishna", "Kumar", "Manish", "Manoj", "Mohan", "Naveen", "Nikhil", "Nitin", "Pankaj", "Prashant", 
+                        "Rahul", "Raj", "Rajesh", "Ravi", "Rishi", "Rohan", "Rohit", "Sachin", "Sanjay", "Saurabh", 
+                        "Shivam", "Siddharth", "Sunil", "Suresh", "Surya", "Tarun", "Varun", "Vikas", "Vinay", "Vishal", 
+                        "Vivek", "Yash", "Aditi", "Anjali", "Ananya", "Diya", "Isha", "Kavya", "Neha", "Nidhi", 
+                        "Pallavi", "Pooja", "Priya", "Priyanka", "Radhika", "Riya", "Roshni", "Sakshi", "Shreya", "Shruti", "Swati"
+                    ],
+                    last: [
+                        "Agarwal", "Ahuja", "Arora", "Banerjee", "Bansal", "Bhatia", "Bhatt", "Bose", "Chauhan", "Chopra", 
+                        "Das", "Datta", "Desai", "Deshmukh", "Dixit", "Dubey", "Garg", "Ghosh", "Goel", "Goswami", 
+                        "Gupta", "Iyer", "Jain", "Jha", "Joshi", "Kapoor", "Kaur", "Khan", "Khanna", "Khatri", 
+                        "Kumar", "Mahajan", "Malik", "Mehta", "Mishra", "Mittal", "Mukherjee", "Nair", "Narayan", "Pandey", 
+                        "Pathak", "Patil", "Prasad", "Rajput", "Rao", "Reddy", "Roy", "Saini", "Saxena", "Sen", 
+                        "Sethi", "Shah", "Sharma", "Shetty", "Singh", "Sinha", "Soni", "Srivastava", "Thakur", "Tiwari", 
+                        "Trivedi", "Upadhyay", "Varma", "Verma", "Yadav"
+                    ]
+                },
+                {
+                    // Eastern European Demographics
+                    first: [
+                        "Aleksander", "Andrei", "Bogdan", "Boris", "Cristian", "Dariusz", "Dmitry", "Dragos", "Florin", "Gabriel", 
+                        "Gheorghe", "Grigore", "Igor", "Ilie", "Ion", "Ivan", "Jan", "Kacper", "Kamil", "Karol", 
+                        "Krzysztof", "Luka", "Maciej", "Maksim", "Marcin", "Marek", "Marian", "Mateusz", "Michal", "Mihai", 
+                        "Milan", "Mircea", "Nicolae", "Nikita", "Oleg", "Pavel", "Pawel", "Petru", "Piotr", "Radu", 
+                        "Roman", "Ruslan", "Sergei", "Stefan", "Szymon", "Tomasz", "Vasile", "Victor", "Vladimir", "Vladislav", 
+                        "Wojciech", "Yevgeny", "Yuri", "Alina", "Ana", "Anastasia", "Andreea", "Daria", "Diana", "Elena", 
+                        "Irena", "Irina", "Katarzyna", "Krystyna", "Magdalena", "Maria", "Mariana", "Mihaela", "Natalia", "Oksana", 
+                        "Olena", "Olga", "Svetlana", "Tatiana", "Yulia"
+                    ],
+                    last: [
+                        "Adamczyk", "Andreev", "Antonov", "Baczynski", "Balan", "Barbu", "Bogdanov", "Chmielewski", "Ciobanu", "Ciorbea", 
+                        "Constantin", "Czarnecki", "Dabrowski", "Dimitrov", "Dobre", "Dudek", "Dumitrescu", "Federov", "Florea", "Gabor", 
+                        "Gheorghe", "Gorski", "Grigore", "Iancu", "Iliescu", "Ionescu", "Ivanov", "Jablonski", "Kaczmarek", "Kaminski", 
+                        "Kowalczyk", "Kowalski", "Kozlowski", "Krawczyk", "Krol", "Kwiatkowski", "Lebedev", "Lewandowski", "Lupu", "Macovei", 
+                        "Majewski", "Malinowski", "Marin", "Mazur", "Michalak", "Mihai", "Munteanu", "Nita", "Nowak", "Nowakowski", 
+                        "Olaru", "Olszewski", "Ostrowski", "Pawlowski", "Petrov", "Pietrzak", "Popa", "Popescu", "Radu", "Roman", 
+                        "Rusu", "Rutkowski", "Sadowski", "Sikora", "Smirnov", "Sokolov", "Sokolowski", "Stan", "Stanciu", "Stefan", 
+                        "Stepien", "Stoica", "Szewczyk", "Szymanski", "Tomaszewski", "Tudor", "Vasile", "Vasilescu", "Vasiliev", "Volkov", 
+                        "Walczak", "Wisniewski", "Wlodarczyk", "Wojciechowski", "Wojcik", "Wozniak", "Wrobel", "Zając", "Zakrzewski", "Zalewski", 
+                        "Zawadzki", "Zielinski"
+                    ]
+                }
+            ];
+
+            const streets = [
+                "High Street", "Station Road", "Church Lane", "Victoria Road", "Green Lane", "Queens Road", "New Road", "Park Road", 
+                "Kings Road", "Main Street", "London Road", "Manor Road", "Church Street", "Mill Lane", "The Avenue", "The Crescent", 
+                "Springfield Road", "George Street", "Albert Road", "Richmond Road", "Windsor Road", "West Street", "East Street", "North Street", 
+                "South Street", "School Lane", "Water Lane", "The Grove", "Grange Road", "Meadow Way", "Cherry Tree Close", "Oak Road", "Willow Drive",
+                "Chestnut Avenue", "Sycamore Drive", "Maple Close", "Ash Grove", "Beech Road", "Elm Street", "Pine Close", "Cedar Drive",
+                "Hawthorn Avenue", "Poplar Road", "Rowan Way", "Hazel Close", "Holly Drive", "Ivy Lane", "Magnolia Close", "Orchard Way",
+                "St John's Road", "St Mary's Road", "St Peter's Street", "Duke Street", "Prince's Street", "Earl Street", "Lord Street"
+            ];
+            
+            const selectedGroup = nameGroups[Math.floor(Math.random() * nameGroups.length)];
+            const rFirstName = selectedGroup.first[Math.floor(Math.random() * selectedGroup.first.length)];
+            const rLastName = selectedGroup.last[Math.floor(Math.random() * selectedGroup.last.length)];
+
+            let clientName;
+            if (Math.random() > 0.7) { // 30% chance the client is a Company rather than an individual
+                const coNames = ["Ltd", "Services", "Solutions", "Group", "Enterprises", "Partners"];
+                clientName = `${rLastName} ${coNames[Math.floor(Math.random() * coNames.length)]}`;
+            } else {
+                const title = Math.random() > 0.5 ? "Mr." : (Math.random() > 0.5 ? "Mrs." : "Ms.");
+                clientName = `${title} ${rFirstName} ${rLastName}`;
+            }
+
+            const rStreet = `${Math.floor(Math.random() * 150) + 1} ${streets[Math.floor(Math.random() * streets.length)]}`;
+            return `${clientName}<br>${rStreet}<br>${rCity}, ${rPostcode}`;
+        }
+
+        async function generateInvoice() {
+            const name = document.getElementById('name').value.trim();
+            const address = document.getElementById('address').value.trim();
+            const postcode = document.getElementById('postcode').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const isVatRegistered = document.getElementById('isVatRegistered').checked;
+            const isUnpaid = document.getElementById('isUnpaid').checked;
+            const jobType = document.getElementById('jobType').value;
+            const bankName = document.getElementById('bankName').value;
+
+            if (!name) {
+                alert("Please enter the sole trader's name to proceed.");
+                return;
+            }
+
+            // Generate a random invoice number with varying formats
+            const currentYear = new Date().getFullYear();
+            const invoicePrefixes = ["INV-", "REC-", "BILL-", "TX-", "IN", "INV", "#", "", `INV-${currentYear}-`, `${currentYear}/`];
+            const rPrefix = invoicePrefixes[Math.floor(Math.random() * invoicePrefixes.length)];
+            const invoiceNumber = rPrefix + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+            
+            // Generate a random date from the past 30 days
+            const randomDate = new Date();
+            const daysAgo = Math.floor(Math.random() * 31); 
+            randomDate.setDate(randomDate.getDate() - daysAgo);
+            
+            // Format to UK standard (DD/MM/YYYY)
+            const dateString = randomDate.toLocaleDateString('en-GB');
+
+            // Randomize between 1 to 4 line items on the invoice
+            const numItems = Math.floor(Math.random() * 4) + 1;
+            let itemsHtml = "";
+            let subtotal = 0;
+            
+            // Shuffle the items for the selected job to ensure we don't pick duplicates
+            const currentItemPool = [...jobItems[jobType]].sort(() => 0.5 - Math.random());
+
+            for (let i = 0; i < numItems; i++) {
+                const itemObj = currentItemPool[i];
+                const price = (Math.random() * (itemObj.max - itemObj.min) + itemObj.min).toFixed(2); 
+                const qty = Math.floor(Math.random() * itemObj.maxQty) + 1; // Respects max quantity for realistic totals
+                const lineTotal = (price * qty).toFixed(2);
+                subtotal += parseFloat(lineTotal);
+                
+                itemsHtml += `
+                    <tr>
+                        <td>${itemObj.desc}</td>
+                        <td>${qty}</td>
+                        <td>£${price}</td>
+                        <td>£${lineTotal}</td>
+                    </tr>
+                `;
+            }
+
+            // Calculate VAT based on the checkbox state
+            const vatRate = isVatRegistered ? 0.20 : 0.00; 
+            const vatAmount = (subtotal * vatRate).toFixed(2);
+            const total = (subtotal + parseFloat(vatAmount)).toFixed(2);
+            
+            // Format the VAT text conditionally
+            let vatHtml = "";
+            if (isVatRegistered) {
+                vatHtml = `<p style="font-size: 1.1em;">VAT (20%): £${vatAmount}</p>`;
+            }
+
+            // --- RANDOMIZATION ENGINE ---
+            const fonts = ["'Arial', sans-serif", "'Georgia', serif", "'Courier New', monospace", "'Tahoma', sans-serif", "'Trebuchet MS', sans-serif", "'Verdana', sans-serif", "'Times New Roman', serif", "'Palatino Linotype', 'Book Antiqua', Palatino, serif", "'Lucida Sans Unicode', 'Lucida Grande', sans-serif", "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif"];
+            const colors = ["#000000", "#333333", "#2c3e50", "#34495e", "#273746", "#1a252f", "#001f3f"];
+            const borderStyles = ["solid", "dashed", "dotted", "double"];
+            const alignments = ["row", "row-reverse", "column"];
+            const titles = ["INVOICE", "TAX INVOICE", "BILL OF SERVICES", "STATEMENT", "RECEIPT OF PAYMENT", "FINAL INVOICE", "FEE"];
+            
+            // Randomly pick one style from each array
+            const rFont = fonts[Math.floor(Math.random() * fonts.length)];
+            const rColor = colors[Math.floor(Math.random() * colors.length)];
+            const rBorder = borderStyles[Math.floor(Math.random() * borderStyles.length)];
+            const rAlign = alignments[Math.floor(Math.random() * alignments.length)];
+            const rTitle = titles[Math.floor(Math.random() * titles.length)];
+            const rTableStyle = Math.random() > 0.5 ? 'colored' : 'light'; // 50/50 chance for colored table headers
+            
+            // Randomize border thicknesses
+            const tThin = (Math.floor(Math.random() * 2) + 1) + 'px';       // 1px to 2px
+            const tMed = (Math.floor(Math.random() * 3) + 2) + 'px';        // 2px to 4px
+            const tThick = (Math.floor(Math.random() * 6) + 3) + 'px';      // 3px to 8px
+            
+            // Handle layout shifts depending on alignment choice
+            let leftAlign = "left", rightAlign = "right", headerGap = "0";
+            if (rAlign === 'row-reverse') {
+                leftAlign = "right";
+                rightAlign = "left";
+            } else if (rAlign === 'column') {
+                leftAlign = "center";
+                rightAlign = "center";
+                headerGap = "20px";
+            }
+            
+            const thBg = rTableStyle === 'colored' ? rColor : '#f2f2f2';
+            const thColor = rTableStyle === 'colored' ? '#ffffff' : '#333333';
+            const thBorderColor = rTableStyle === 'colored' ? rColor : '#ddd';
+
+            // Generate Random Terms & Payment Status
+            const paymentTerms = ["Due on Receipt", "7 Days", "14 Days", "30 Days"];
+            const rTerm = paymentTerms[Math.floor(Math.random() * paymentTerms.length)];
+            
+            let paymentStatusHtml = "";
+            if (isUnpaid) {
+                let rBank = bankName;
+                if (rBank === "Random") {
+                    const banks = ["Barclays", "HSBC", "NatWest", "Lloyds Bank", "Santander", "Halifax", "Nationwide", "Monzo", "Starling Bank"];
+                    rBank = banks[Math.floor(Math.random() * banks.length)];
+                }
+                const sortCode = Math.floor(10 + Math.random() * 90) + "-" + Math.floor(10 + Math.random() * 90) + "-" + Math.floor(10 + Math.random() * 90);
+                const accNumber = Math.floor(10000000 + Math.random() * 90000000);
+                
+                paymentStatusHtml = `
+                    <h4 style="margin: 0 0 5px 0; color: #dc3545;">Status: UNPAID</h4>
+                    <p style="margin: 0 0 10px 0; font-size: 1em; color: #555;">Please remit payment to the following bank account:</p>
+                    <p style="margin: 0; color: #555;"><strong>Bank:</strong> ${rBank}</p>
+                    <p style="margin: 0; color: #555;"><strong>Sort Code:</strong> ${sortCode}</p>
+                    <p style="margin: 0; color: #555;"><strong>Account Number:</strong> ${accNumber}</p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.9em; color: #777;">Please quote invoice number <strong>${invoiceNumber}</strong> as payment reference.</p>
+                `;
+            } else {
+                const paymentMethods = ["Paid via Bank Transfer", "Paid via Card", "Paid via Cash"];
+                const rPayment = paymentMethods[Math.floor(Math.random() * paymentMethods.length)];
+                
+                paymentStatusHtml = `
+                    <h4 style="margin: 0 0 5px 0; color: #333;">Payment Status</h4>
+                    <p style="margin: 0; font-size: 1.1em; color: #28a745;"><strong>${rPayment}</strong></p>
+                    <p style="margin: 10px 0 0 0; font-size: 0.9em; color: #777;">Thank you for your business.</p>
+                `;
+            }
+
+            // --- INTERNET API CONNECTION ---
+            // Fetch a live, realistic UK identity and address from a free public API
+            let rClient = "";
+            const btn = document.querySelector('button[onclick="generateInvoice()"]');
+            const originalBtnText = btn.innerText;
+            try {
+                // Temporarily update the button text so you know it is downloading
+                btn.innerText = "Downloading live data...";
+                
+                const response = await fetch('https://randomuser.me/api/?nat=gb');
+                const data = await response.json();
+                const apiUser = data.results[0];
+                
+                const clientName = `${apiUser.name.title}. ${apiUser.name.first} ${apiUser.name.last}`;
+                const clientStreet = `${apiUser.location.street.number} ${apiUser.location.street.name}`;
+                const clientCityPostcode = `${apiUser.location.city}, ${apiUser.location.postcode}`;
+                
+                rClient = `${clientName}<br>${clientStreet}<br>${clientCityPostcode}`;
+                
+                btn.innerText = originalBtnText; // Reset button text once downloaded
+            } catch (error) {
+                // If you have no internet connection, automatically fallback to the offline generator
+                btn.innerText = originalBtnText; // Also reset button text on failure
+                console.error("API Fetch Error:", error);
+                rClient = generateLocalClient(postcode);
+            }
+
+            // Construct the HTML for the invoice layout
+            const invoiceHtml = `
+                <style>
+                    #invoice-content { font-family: ${rFont}; color: #333; }
+                    #invoice-content h1, #invoice-content h2, #invoice-content h3 { color: ${rColor}; margin-top: 0; }
+                    #invoice-content .invoice-header {
+                        display: flex; flex-direction: ${rAlign}; justify-content: space-between;
+                        align-items: ${rAlign === 'column' ? 'center' : 'flex-start'}; gap: ${headerGap};
+                        border-bottom: ${tMed} ${rBorder} ${rColor}; padding-bottom: 20px; margin-bottom: 20px;
+                    }
+                    #invoice-content .header-block-1 { text-align: ${leftAlign}; }
+                    #invoice-content .header-block-2 { text-align: ${rightAlign}; }
+                    #invoice-content table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    #invoice-content th, #invoice-content td { border-bottom: ${tThin} ${rBorder} #ccc; padding: 12px; text-align: left; }
+                    #invoice-content th { background-color: ${thBg}; color: ${thColor}; border-bottom: ${tMed} solid ${thBorderColor}; }
+                    #invoice-content .total-section { text-align: right; margin-top: 30px; padding-top: 15px; border-top: ${tMed} ${rBorder} ${rColor}; }
+                    
+                    /* Mobile-friendly styling for the generated invoice preview */
+                    @media screen and (max-width: 600px) {
+                        #invoice-content .invoice-header { flex-direction: column !important; align-items: flex-start !important; gap: 15px !important; }
+                        #invoice-content .header-block-1, #invoice-content .header-block-2 { text-align: left !important; }
+                    }
+                </style>
+                
+                <div id="invoice-content">
+                    <div class="invoice-header">
+                        <div class="header-block-1">
+                            <h1 style="font-size: 2.5em; margin-bottom: 10px;">${rTitle}</h1>
+                            <p style="margin: 5px 0 0 0; font-size: 1.1em;"><strong>Invoice #:</strong> ${invoiceNumber}</p>
+                            <p style="margin: 5px 0 0 0; font-size: 1.1em;"><strong>Date:</strong> ${dateString}</p>
+                            <p style="margin: 5px 0 0 0; font-size: 1.1em;"><strong>Terms:</strong> ${rTerm}</p>
+                            
+                            <h3 style="margin: 20px 0 5px 0; font-size: 1.2em;">From:</h3>
+                            <p style="margin: 0; font-size: 1.1em;"><strong>${name}</strong></p>
+                            <p style="margin: 0;">${address}</p>
+                            <p style="margin: 0;">${postcode}</p>
+                            <p style="margin: 0;">${email}</p>
+                        </div>
+                        <div class="header-block-2">
+                            <h3 style="margin-bottom: 10px; font-size: 1.2em;">Billed To:</h3>
+                            <p style="margin: 0; font-size: 1.1em;">${rClient}</p>
+                        </div>
+                    </div>
+                    
+                    <div style="overflow-x: auto;">
+                        <table style="min-width: 450px;">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Qty</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="total-section">
+                        <p style="font-size: 1.1em;">Subtotal: £${subtotal.toFixed(2)}</p>
+                        ${vatHtml}
+                        <h2 style="font-size: 1.8em; margin-top: 15px;">Total Due: £${total}</h2>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding: 15px; background: #f9f9f9; border-left: ${tThick} solid ${rColor}; text-align: left;">
+                        ${paymentStatusHtml}
+                    </div>
+                </div>
+                
+                <div class="no-print" style="margin-top: 40px; text-align: center;">
+                    <button onclick="window.print()" style="width: auto;">Print / Save as PDF</button>
+                </div>
+            `;
+
+            const invoiceDiv = document.getElementById('invoice');
+            invoiceDiv.innerHTML = invoiceHtml;
+            invoiceDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
